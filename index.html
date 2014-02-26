@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+		<style type="text/css">
+			BODY {
+				margin: 0;
+				overflow: hidden;
+				overflow-x hidden;
+			}
+			
+			#content {
+				position: absolute;
+				width: 100%;
+				height: 100%;
+			}
+			
+			#txt, #dst {
+				position: absolute;
+				padding: 0;
+				margin: 0 0 200px 0;
+				border: 0;
+				width: 50%;
+				top: 32px;
+				bottom: 0px;
+				padding: 4px;
+				overflow-y: always;
+			}
+			
+			#frm {
+				display: block;
+				position: absolute;
+				padding: 0;
+				margin: 0;
+				bottom: 0px;
+				height: 300px;
+				width: 100%;
+				overflow: hidden;
+			}
+			
+			#src {
+				position: absolute;
+				width: 100%;
+				height: 200px;
+				margin: 0; padding 4px;
+				bottom: 0px;
+				background-color: #F0F0F0;
+				left: 0;
+			}
+			
+			#btnsubmit {
+				position: absolute;
+				bottom: 4px;
+				right: 4px;
+			}
+				
+			#dst {
+				background-color: #FCFCFC;
+				right: 0;
+				font-family: monospace;
+				white-space: pre-wrap;
+			}
+			
+			#header {
+				height: 32px;
+				line-height: 32px;
+				background-color: #333;
+				color: #F0F0F0;
+				padding: 0 4px 0 4px;
+				font-family: sans-serif;
+				font-size: .8em;
+			}
+			
+			.error {
+				color: #ff0000;
+			}
+		</style>
+		<script type="application/javascript">
+			var $id = document.getElementById.bind(document), 
+				$bdy, $txt, $dst, $src, $frm;
+		
+			var run = function () {
+				var originalColor = $src.style.backgroundColor;
+				$src.style.backgroundColor = '#000000';
+				
+				window.setTimeout(function () {$src.style.backgroundColor = originalColor;}, 10);
+				
+				var src = $src.value;
+				var txt = $txt.value;
+				
+				try {
+					var fun = eval("(function (text) {" + src + "});");
+					var result = fun(txt);
+					$dst.innerText = result;
+					
+				} catch (e) {
+					console.log(e);
+					$dst.innerHTML = "<div class=\"error\">" + e.message + "\n\n" + e.stack + "</div>";
+				}
+			};
+			
+			var save = function () {
+				localStorage.setItem("src", $src.value);
+				localStorage.setItem("txt", $txt.value);
+			}
+		
+			document.addEventListener("DOMContentLoaded", function(event) {
+				$bdy = document.getElementsByTagName("body")[0];
+				$txt = $id("txt");
+				$dst = $id("dst");
+				$src = $id("src");
+				$frm = $id("frm");
+				
+				$txt.value = localStorage.getItem("txt");
+				$src.value = localStorage.getItem("src") || "return text;";
+			
+				$frm.addEventListener("submit", function (event) {
+					event.preventDefault();
+					
+					try {
+						save();
+						run();
+					} catch (e) {console.log(e); throw e;}
+				});
+				
+				$bdy.addEventListener("keydown", function (e) {
+					if (e.ctrlKey && e.keyCode == 83) {
+						save();
+						e.preventDefault();
+						
+					} else if (e.ctrlKey && e.keyCode == 13) {
+						save();
+						run();
+						e.preventDefault();
+				    }
+				});
+			});
+		</script>
+    </head>
+    <body>
+		<div id="content">
+			<div id="header">
+				jsWarp &bull; execute script on use ctrl+return to run your script &bull; ctrl+s to save to localstorage (ctrl+return also saves)
+			</div>
+			<textarea id="txt" placeholder="text"></textarea>
+			<div id="dst" placeholder="foobar"></div>
+			<div style="clear: both;"></div>
+			<form id="frm"><textarea id="src" placeholder="script"></textarea><input id="btnsubmit" type="submit" value="ctrl+enter" /></form>
+		</div>
+    </body>
+</html>
