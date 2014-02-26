@@ -19,7 +19,7 @@
 				height: 100%;
 			}
 			
-			#txt, #dst {
+			#txtc, #dst {
 				position: absolute;
 				padding: 0;
 				margin: 0 0 200px 0;
@@ -28,8 +28,28 @@
 				top: 32px;
 				bottom: 0px;
 				padding: 4px;
-				overflow-y: always;
+				overflow-y: none;
 			}
+			
+			#txtc {
+				left: 0;
+			}
+			
+			#txt {
+				position: absolute;
+				width: calc(100% - 32px);
+				top: 0px;
+				bottom: 0px;
+				left: 0px;
+				overflow-y: auto;
+			}
+				
+			#dst {
+				background-color: #FCFCFC;
+				right: 0;
+				font-family: monospace;
+				white-space: pre-wrap;
+			}			
 			
 			#frm {
 				display: block;
@@ -57,13 +77,7 @@
 				bottom: 4px;
 				right: 4px;
 			}
-				
-			#dst {
-				background-color: #FCFCFC;
-				right: 0;
-				font-family: monospace;
-				white-space: pre-wrap;
-			}
+
 			
 			#header {
 				height: 32px;
@@ -78,11 +92,36 @@
 			.error {
 				color: #ff0000;
 			}
+			
+			A {
+				text-decoration: none;
+				color: #6699AA;
+			}
 		</style>
 		<script type="application/javascript">
 			var $id = document.getElementById.bind(document), 
 				$bdy, $txt, $dst, $src, $frm;
-		
+				
+			String.prototype.lines = function () {
+				return this.split("\n");
+			};
+			
+			String.prototype.words = function () {
+				return this.split(/\W+/);
+			};
+			
+			Array.prototype.unique = function () {
+				var out = [], arr = this;
+				for (var i=0, ii=arr.length; i<ii; i++)
+					if (out.indexOf(arr[i]) === -1) out.push(arr[i]);
+					
+				return out;
+			};
+			
+			var identity = function (x) {
+				return x;
+			};
+			
 			var run = function () {
 				var originalColor = $src.style.backgroundColor;
 				$src.style.backgroundColor = '#000000';
@@ -93,7 +132,7 @@
 				var txt = $txt.value;
 				
 				try {
-					var fun = eval("(function (text) {" + src + "});");
+					var fun = eval("(function (text) {\n" + src + "\n});");
 					var result = fun(txt);
 					$dst.innerText = result;
 					
@@ -106,7 +145,7 @@
 			var save = function () {
 				localStorage.setItem("src", $src.value);
 				localStorage.setItem("txt", $txt.value);
-			}
+			};
 		
 			document.addEventListener("DOMContentLoaded", function(event) {
 				$bdy = document.getElementsByTagName("body")[0];
@@ -117,6 +156,24 @@
 				
 				$txt.value = localStorage.getItem("txt");
 				$src.value = localStorage.getItem("src") || "return text;";
+				
+				// makes tab key insert tabs (\t) in textareas instead of advancing focus
+				var tabInserter = function () {
+					var textareas = document.getElementsByTagName('textarea');
+					var count = textareas.length;
+					for(var i=0; i<count; i++) {
+						textareas[i].onkeydown = function (e) {
+							if (e.keyCode==9 || event.which==9) {
+								e.preventDefault();
+								var s = this.selectionStart;
+								this.value = this.value.substring(0, this.selectionStart) + "\t" + this.value.substring(this.selectionEnd);
+								this.selectionEnd = s + 1; 
+							}
+						}
+					}
+				};
+				tabInserter();
+				
 			
 				$frm.addEventListener("submit", function (event) {
 					event.preventDefault();
@@ -128,15 +185,23 @@
 				});
 				
 				$bdy.addEventListener("keydown", function (e) {
-					if (e.ctrlKey && e.keyCode == 83) {
+					var key = e.keyCode || e.which;
+					
+					if (e.ctrlKey && key == 83) {
 						save();
 						e.preventDefault();
 						
-					} else if (e.ctrlKey && e.keyCode == 13) {
+					} else if (e.ctrlKey && key == 13) {
 						save();
 						run();
 						e.preventDefault();
 				    }
+				});
+				
+				$id("ahalp").addEventListener("click", function (e) {
+					console.log($id("halp"));
+					$dst.innerHTML = $id("halp").innerHTML;
+					e.preventDefault();
 				});
 			});
 		</script>
@@ -144,12 +209,37 @@
     <body>
 		<div id="content">
 			<div id="header">
-				jsWarp &bull; execute script on use ctrl+return to run your script &bull; ctrl+s to save to localstorage (ctrl+return also saves)
+				jsWarp &bull; execute script on use ctrl+return to run your script &bull; ctrl+s to save to localstorage (ctrl+return also saves) &bull; <a href="https://github.com/schnalle/jswarp">jswarp@github</a> &bull; <input  type="button" id="ahalp" value="help" />
 			</div>
-			<textarea id="txt" placeholder="text"></textarea>
+			<div id="txtc"><textarea id="txt" placeholder="text"></textarea></div>
 			<div id="dst" placeholder="foobar"></div>
 			<div style="clear: both;"></div>
-			<form id="frm"><textarea id="src" placeholder="script"></textarea><input id="btnsubmit" type="submit" value="ctrl+enter" /></form>
+			<form id="frm"><textarea id="src" placeholder="script"></textarea><input id="btnsubmit" type="submit" value="run (ctrl+enter)" /></form>
 		</div>
+<pre id="halp" style="display: none;">
+<b>help</b>
+
+the input text is stored in the variable "text".
+
+<b>added functions</b>
+
+str.lines():
+  // adds a "." at the end of each line
+  return text.lines().join(".\n");
+
+str.words():
+  // comma separated list of words (something like str.split(/\W+/);)
+  return text.words().join(",");
+  
+identity:
+  // the identity function. useful for all kinds of stuff.
+  // e.g. removes empty lines
+  return text.lines().filter(identity).join("\n");
+
+arr.unique():
+  // removes duplicates from an array
+  return text.words().unique().sort().join("\n");
+  
+</pre>
     </body>
 </html>
